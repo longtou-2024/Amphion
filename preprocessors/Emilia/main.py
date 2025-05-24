@@ -462,7 +462,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config_path", type=str, default="config.json", help="config path"
     )
-    parser.add_argument("--batch_size", type=int, default=16, help="batch size")
+    parser.add_argument("--batch_size", type=int, default=1, help="batch size")
     parser.add_argument(
         "--compute_type",
         type=str,
@@ -472,7 +472,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--whisper_arch",
         type=str,
-        default="medium",
+        default="turbo",
         help="The name of the Whisper model to load.",
     )
     parser.add_argument(
