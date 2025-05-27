@@ -6,12 +6,12 @@
         ]
     },
     "entrypoint": {
-        "input_folder_path": "/home/longtou.2024/mount_wds/mediazen_adult/unzip",
+        "input_folder_path": "/home/longtou.2024/mount_wds/valid",
         "SAMPLE_RATE": 24000
     },
     "separate": {
         "step1": {
-            "model_path": "separate_model/UVR-MDX-NET-Inst_HQ_3.onnx",
+            "model_path": "/home/longtou.2024/mount/longtou/saved/Emilia/separate_model/UVR-MDX-NET-Inst_HQ_3.onnx",
             "denoise": true,
             "margin": 44100,
             "chunks": 15,
@@ -21,7 +21,7 @@
         }
     },
     "mos_model": {
-        "primary_model_path": "mos_model/DNSMOS/sig_bak_ovr.onnx"
+        "primary_model_path": "/home/longtou.2024/mount/longtou/saved/Emilia/mos_model/DNSMOS/sig_bak_ovr.onnx"
     },
     "huggingface_token": ""
 }

@@ -16,9 +16,13 @@ from pydub import AudioSegment
 from pyannote.audio import Pipeline
 import pandas as pd
 import webdataset as wds
+import io
+from pathlib import Path
+import subprocess
 
 from utils.tool import (
     export_to_mp3,
+    write_mp3,
     load_cfg,
     get_audio_files,
     detect_gpu,
@@ -31,12 +35,15 @@ from models import separate_fast, dnsmos, whisper_asr, silero_vad
 warnings.filterwarnings("ignore")
 audio_count = 0
 
+def gcp_cp(fname):
+    dirname = str(Path(fname).parent)
+    subprocess.run(f"gcloud storage cp -R {dirname} gs://ai-lab-speech-bucket/longtou/tmp/", shell=True)
+    subprocess.run(f"rm {fname}", shell=True)
+
 @time_logger
-def export_to_wds(writer, audio, asr_result, folder_path, file_name):
+def export_to_wds(writer, audio, asr_result, file_name):
     sr = audio["sample_rate"]
     audio = audio["waveform"]
-
-    os.makedirs(folder_path, exist_ok=True)
 
     for idx, segment in tqdm.tqdm(enumerate(asr_result),
                                   total=len(asr_result),
@@ -46,12 +53,15 @@ def export_to_wds(writer, audio, asr_result, folder_path, file_name):
         split_audio = librosa.to_mono(split_audio)
         #out_file = f"{file_name}_{idx}.mp3"
         uttid = f"{file_name}_{idx}"
-        #out_path = os.path.join(folder_path, out_file)
-        
+        buffer = io.BytesIO()
+        write_mp3(buffer, sr, split_audio)
+        json_wds = segment
+        json_wds["sample_rate"] = sr
+
         example = {
             "__key__": uttid,
-            "mp3": split_audio,
-            "sample_rate": sr,
+            "mp3": buffer.getvalue(),
+            "json": json.dumps(json_wds, ensure_ascii=False),
         }
         writer.write(example)
 
@@ -412,7 +422,7 @@ def filter(mos_list):
     return filtered_list
 
 
-def main_process(audio_path, save_path=None, audio_name=None):
+def main_process(audio_path, save_path=None, audio_name=None, writer=None):
     """
     Process the audio file, including standardization, source separation, speaker segmentation, VAD, ASR, export to MP3, and MOS prediction.
 
@@ -464,16 +474,65 @@ def main_process(audio_path, save_path=None, audio_name=None):
     logger.info("Step 5.2: Filter out files with less than average MOS")
     filtered_list = filter(mos_list)
 
-    logger.info("Step 6: write result into MP3 and JSON file")
-    export_to_mp3(audio, filtered_list, save_path, audio_name)
+    logger.info("Step 6: write result (MP3 and JSON to Webdataset")
+    export_to_wds(writer, audio, filtered_list, audio_name)
 
-    final_path = os.path.join(save_path, audio_name + ".json")
-    with open(final_path, "w") as f:
-        json.dump(filtered_list, f, ensure_ascii=False)
+    logger.info(f"All done{save_path}")
+    #return final_path, filtered_list
 
-    logger.info(f"All done, Saved to: {final_path}")
-    return final_path, filtered_list
+def main_process_wds(sample, writer=None):
+    """
+    Process the audio file, including standardization, source separation, speaker segmentation, VAD, ASR, export to MP3, and MOS prediction.
 
+    Args:
+        sample (dict): webdataset sample.
+
+    Returns:
+        tuple: Contains the save path and the MOS list.
+    """
+
+    #audio_name = audio_name or os.path.splitext(os.path.basename(audio_path))[0]
+    #save_path = save_path or os.path.join(
+    #    os.path.dirname(audio_path) + "_processed", audio_name
+    #)
+    audio_name = sample["__key__"]
+    audio_path = AudioSegment.from_file(io.BytesIO(sample["wav"]), format="wav")
+    logger.debug(
+        f"Processing audio: {audio_name}"
+    )
+
+    logger.info(
+        "Step 0: Preprocess all audio files --> 24k sample rate + wave format + loudnorm + bit depth 16"
+    )
+    audio = standardization(audio_path)
+    audio["name"] = audio_name
+
+    logger.info("Step 1: Source Separation")
+    audio = source_separation(separate_predictor1, audio)
+
+    logger.info("Step 2: Speaker Diarization")
+    speakerdia = speaker_diarization(audio)
+
+    logger.info("Step 3: Fine-grained Segmentation by VAD")
+    vad_list = vad.vad(speakerdia, audio)
+    segment_list = cut_by_speaker_label(vad_list)  # post process after vad
+
+    logger.info("Step 4: ASR")
+    asr_result = asr(segment_list, audio)
+
+    logger.info("Step 5: Filter")
+    logger.info("Step 5.1: calculate mos_prediction")
+    avg_mos, mos_list = mos_prediction(audio, asr_result)
+
+    logger.info(f"Step 5.1: done, average MOS: {avg_mos}")
+
+    logger.info("Step 5.2: Filter out files with less than average MOS")
+    filtered_list = filter(mos_list)
+
+    logger.info("Step 6: write result (MP3 and JSON to Webdataset)")
+    export_to_wds(writer, audio, filtered_list, audio_name)
+
+    logger.info(f"All done: {audio_name}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -486,7 +545,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config_path", type=str, default="config.json", help="config path"
     )
-    parser.add_argument("--batch_size", type=int, default=16, help="batch size")
+    parser.add_argument("--batch_size", type=int, default=1, help="batch size")
     parser.add_argument(
         "--compute_type",
         type=str,
@@ -496,7 +555,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--whisper_arch",
         type=str,
-        default="medium",
+        default="turbo",
         help="The name of the Whisper model to load.",
     )
     parser.add_argument(
@@ -510,6 +569,12 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="Exit pipeline when task done.",
+    )
+    parser.add_argument(
+        "--wds_path",
+        type=str,
+        default="wds",
+        help="output dir for wds",
     )
     args = parser.parse_args()
 
@@ -591,15 +656,13 @@ if __name__ == "__main__":
 
     input_folder_path = cfg["entrypoint"]["input_folder_path"]
 
-    if not os.path.exists(input_folder_path):
-        raise FileNotFoundError(f"input_folder_path: {input_folder_path} not found")
+    assert input_folder_path.startswith("gs://")
+    dataset = wds.WebDataset(input_folder_path)
 
-    audio_paths = get_audio_files(input_folder_path)  # Get all audio files
-    logger.debug(f"Scanning {len(audio_paths)} audio files in {input_folder_path}")
-
-    f_log = open("log.txt", 'w')
-    for path in audio_paths:
-        try:
-            main_process(path)
-        except Exception as e:
-            f_log.write(f"{path}\n{e}\n\n") 
+    Path(args.wds_path).mkdir(parents=True, exist_ok=True)
+    writer = wds.ShardWriter(f"{args.wds_path}/shard-%06d.tar",
+                             maxsize=1e9,
+                             post=gcp_cp,
+                             )
+    for sample in dataset:
+        main_process_wds(sample, writer=writer)

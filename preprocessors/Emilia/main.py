@@ -444,7 +444,7 @@ def main_process(audio_path, save_path=None, audio_name=None):
     export_to_mp3(audio, filtered_list, save_path, audio_name)
 
     final_path = os.path.join(save_path, audio_name + ".json")
-    with open(final_path, "w") as f:
+    with open(final_path, "w", encoding="utf-8") as f:
         json.dump(filtered_list, f, ensure_ascii=False)
 
     logger.info(f"All done, Saved to: {final_path}")
