@@ -21,12 +21,14 @@ MEM_SIZE = "100Gi"
 MOUNT_PATH = "/home/longtou.2024/mount"
 CONFIG_PATH = f"{MOUNT_PATH}/longtou/saved/Emilia/config.json"
 WDS_PATH = "emilia_pipe"
-INPUT_FOLDER_PATH = "gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/wds_v2/shard-000{000..113}.tar"
-GCS_URL = f"gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/{WDS_PATH}"
+RECIPE_NAME = "saltlux_gyeongsang"
+INPUT_FOLDER_PATH = "gs://prod-ai-lab-speech-bucket/longtou/db/" + RECIPE_NAME + "/wds_v2/shard-000{000..113}.tar"
+GCS_URL = "gs://prod-ai-lab-speech-bucket/longtou/db/" + RECIPE_NAME + "/"
+F_LOG = MOUNT_PATH + "/longtou/db/" + RECIPE_NAME +"/emilia_pipe.log"
 SHELL_COMMAND = f''' \
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" \
 && . ./activate_python.sh \
-&& python main_wds.py --config_path {CONFIG_PATH} --input_folder_path {INPUT_FOLDER_PATH} --wds_path {WDS_PATH} --gcs_url {GCS_URL}
+&& python main_wds.py --config_path {CONFIG_PATH} --input_folder_path {INPUT_FOLDER_PATH} --wds_path {WDS_PATH} --gcs_url {GCS_URL} --f_log {F_LOG}
 '''
 
 def add_pod_annotation(
