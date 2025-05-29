@@ -38,7 +38,7 @@ audio_count = 0
 
 def gcp_cp(fname, gcs_url="gs://ai-lab-speech-bucket/longtou/tmp"):
     dirname = str(Path(fname).parent)
-    subprocess.run(f"gcloud storage cp -R {dirname} {gcs_url}/", shell=True)
+    subprocess.run(f"gcloud storage cp -R {dirname} {gcs_url}", shell=True)
     subprocess.run(f"rm {fname}", shell=True)
 
 @time_logger
@@ -670,7 +670,9 @@ if __name__ == "__main__":
     input_folder_path = cfg["entrypoint"]["input_folder_path"]
 
     assert input_folder_path.startswith("gs://")
-    dataset = wds.WebDataset(input_folder_path)
+    cache_dir = Path("cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    dataset = wds.WebDataset(input_folder_path, cache_size=int(3e9), cache_dir=cache_dir)
 
     Path(args.wds_path).mkdir(parents=True, exist_ok=True)
     writer = wds.ShardWriter(f"{args.wds_path}/shard-%06d.tar",
