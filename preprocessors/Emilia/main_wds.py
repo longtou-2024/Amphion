@@ -583,6 +583,12 @@ if __name__ == "__main__":
         default="gs://ai-lab-speech-bucket/longtou/tmp",
         help="gcs url for cp wds to",
     )
+    parser.add_argument(
+        "--f_log",
+        type=str,
+        default="log.txt",
+        help="path to log.txt",
+    )
     args = parser.parse_args()
 
     batch_size = args.batch_size
@@ -668,8 +674,12 @@ if __name__ == "__main__":
 
     Path(args.wds_path).mkdir(parents=True, exist_ok=True)
     writer = wds.ShardWriter(f"{args.wds_path}/shard-%06d.tar",
-                             maxsize=1e6,
+                             maxsize=1e9,
                              post=partial(gcp_cp, gcs_url=args.gcs_url),
                              )
+    f_log = open(args.f_log, "w")
     for sample in dataset:
-        main_process_wds(sample, writer=writer)
+        try:
+            main_process_wds(sample, writer=writer)
+        except Exception as e:
+            f_log.write(f"{sample['__key__']}: {e}\n")
