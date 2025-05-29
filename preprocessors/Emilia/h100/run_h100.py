@@ -14,18 +14,18 @@ from kfp import kubernetes
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 
-IMAGE_URL = "us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:emilia-pipe"
+IMAGE_URL = "us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:v1"
 N_GPU = 1
 N_CPU = "12"
 MEM_SIZE = "100Gi"
 MOUNT_PATH = "/home/longtou.2024/mount"
-CONFIG_PATH = f"{MOUNT_PATH}/Emilia/config.yaml"
+CONFIG_PATH = f"{MOUNT_PATH}/longtou/saved/Emilia/config.json"
 WDS_PATH = "emilia_pipe"
 INPUT_FOLDER_PATH = "gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/wds_v2/shard-000{000..113}.tar"
 GCS_URL = f"gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/{WDS_PATH}"
 SHELL_COMMAND = f''' \
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" \
-&& . activate_python.sh &&
+&& . ./activate_python.sh \
 && python main_wds.py --config_path {CONFIG_PATH} --input_folder_path {INPUT_FOLDER_PATH} --wds_path {WDS_PATH} --gcs_url {GCS_URL}
 '''
 

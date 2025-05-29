@@ -668,7 +668,7 @@ if __name__ == "__main__":
 
     Path(args.wds_path).mkdir(parents=True, exist_ok=True)
     writer = wds.ShardWriter(f"{args.wds_path}/shard-%06d.tar",
-                             maxsize=1e9,
+                             maxsize=1e6,
                              post=partial(gcp_cp, gcs_url=args.gcs_url),
                              )
     for sample in dataset:

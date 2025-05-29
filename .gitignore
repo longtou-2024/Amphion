@@ -64,3 +64,8 @@ conversion_results
 get_available_gpu.py
 
 *.safetensors
+
+# longtou
+activate_python.sh
+conda
+Miniconda3-latest-Linux-x86_64.sh
