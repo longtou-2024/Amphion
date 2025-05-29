@@ -19,6 +19,7 @@ import webdataset as wds
 import io
 from pathlib import Path
 import subprocess
+from functools import partial
 
 from utils.tool import (
     export_to_mp3,
@@ -35,9 +36,9 @@ from models import separate_fast, dnsmos, whisper_asr, silero_vad
 warnings.filterwarnings("ignore")
 audio_count = 0
 
-def gcp_cp(fname):
+def gcp_cp(fname, gcs_url="gs://ai-lab-speech-bucket/longtou/tmp"):
     dirname = str(Path(fname).parent)
-    subprocess.run(f"gcloud storage cp -R {dirname} gs://ai-lab-speech-bucket/longtou/tmp/", shell=True)
+    subprocess.run(f"gcloud storage cp -R {dirname} {gcs_url}/", shell=True)
     subprocess.run(f"rm {fname}", shell=True)
 
 @time_logger
@@ -576,6 +577,12 @@ if __name__ == "__main__":
         default="wds",
         help="output dir for wds",
     )
+    parser.add_argument(
+        "--gcs_url",
+        type=str,
+        default="gs://ai-lab-speech-bucket/longtou/tmp",
+        help="gcs url for cp wds to",
+    )
     args = parser.parse_args()
 
     batch_size = args.batch_size
@@ -662,7 +669,7 @@ if __name__ == "__main__":
     Path(args.wds_path).mkdir(parents=True, exist_ok=True)
     writer = wds.ShardWriter(f"{args.wds_path}/shard-%06d.tar",
                              maxsize=1e9,
-                             post=gcp_cp,
+                             post=partial(gcp_cp, gcs_url=args.gcs_url),
                              )
     for sample in dataset:
         main_process_wds(sample, writer=writer)

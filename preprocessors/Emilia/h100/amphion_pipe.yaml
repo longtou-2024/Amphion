@@ -1,0 +1,68 @@
+# PIPELINE DEFINITION
+# Name: amphion-pipe
+# Inputs:
+#    location: str
+#    project: str
+components:
+  comp-amphion-component:
+    executorLabel: exec-amphion-component
+    inputDefinitions:
+      parameters:
+        mount_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-amphion-component:
+      container:
+        command:
+        - sh
+        - -c
+        - ' export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" && python main_wds.py --config_path
+          /home/longtou.2024/mount/Emilia/config.yaml --input_folder_path gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/wds_v2/shard-000{000..113}.tar
+          --wds_path emilia_pipe --gcs_url gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/emilia_pipe
+
+          '
+        image: us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:emilia-pipe
+        resources:
+          accelerator:
+            count: '1'
+            type: nvidia.com/gpu
+          cpuRequest: 12.0
+          memoryRequest: 107.3741824
+pipelineInfo:
+  name: amphion-pipe
+root:
+  dag:
+    tasks:
+      amphion-component:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-amphion-component
+        inputs:
+          parameters:
+            mount_path:
+              runtimeValue:
+                constant: /home/longtou.2024/mount
+        taskInfo:
+          name: amphion-component
+  inputDefinitions:
+    parameters:
+      location:
+        parameterType: STRING
+      project:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.9.0
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-amphion-component:
+          podMetadata:
+            annotations:
+              gke-gcsfuse/volumes: 'true'
+          pvcMount:
+          - constant: longtou-gcs-fuse-csi-static-pvc3
+            mountPath: /home/longtou.2024/mount

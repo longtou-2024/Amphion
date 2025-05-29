@@ -6,7 +6,7 @@
         ]
     },
     "entrypoint": {
-        "input_folder_path": "/home/longtou.2024/mount_wds/valid",
+        "input_folder_path": "",
         "SAMPLE_RATE": 24000
     },
     "separate": {
