@@ -1,6 +1,7 @@
 # longtou.2024
 FROM gcr.io/deeplearning-platform-release/pytorch-cu121.2-3.py310
 
+RUN apt update && apt install -y file # webdataset cache_dir error
 WORKDIR /root
 ADD Amphion /root/Amphion
 WORKDIR /root/Amphion/preprocessors/Emilia

@@ -14,7 +14,7 @@ from kfp import kubernetes
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 
-IMAGE_URL = "us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:v1"
+IMAGE_URL = "us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:v2.1"
 N_GPU = 1
 N_CPU = "12"
 MEM_SIZE = "100Gi"
