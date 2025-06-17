@@ -500,7 +500,11 @@ def main_process_wds(sample, writer=None):
     if "wav" in sample:
         audio_path = AudioSegment.from_file(io.BytesIO(sample["wav"]), format="wav")
     else:
-        audio_path = AudioSegment.from_file(io.BytesIO(sample["mp3"]), format="mp3")
+        try:
+            audio_path = AudioSegment.from_file(io.BytesIO(sample["mp3"]), format="mp3")
+        except:
+            audio_path = AudioSegment.from_file(io.BytesIO(sample["mp3"]), format="mp4")
+
     logger.debug(
         f"Processing audio: {audio_name}"
     )
