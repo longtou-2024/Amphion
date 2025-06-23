@@ -596,6 +596,17 @@ if __name__ == "__main__":
         default="log.txt",
         help="path to log.txt",
     )
+    parser.add_argument(
+        "--max_gpu_mem_frac",
+        type=float,
+        help="maximum gpu memory fraction that process can utilize",
+    )
+    parser.add_argument(
+        "--start_shard",
+        type=int,
+        default=0,
+        help="webdataset start shard index",
+    )
     args = parser.parse_args()
 
     batch_size = args.batch_size
@@ -681,9 +692,13 @@ if __name__ == "__main__":
     cache_dir.mkdir(parents=True, exist_ok=True)
     dataset = wds.WebDataset(input_folder_path, cache_size=int(3e9), cache_dir=cache_dir)
 
+    if args.max_gpu_mem_frac:
+        torch.cuda.set_per_process_memory_fraction(args.max_gpu_mem_frac)
+
     Path(args.wds_path).mkdir(parents=True, exist_ok=True)
     writer = wds.ShardWriter(f"{args.wds_path}/shard-%06d.tar",
                              maxsize=1e9,
+                             start_shard=args.start_shard,
                              post=partial(gcp_cp, gcs_url=args.gcs_url),
                              )
     f_log = open(args.f_log, "w")
