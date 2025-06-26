@@ -36,6 +36,38 @@ from models import separate_fast, dnsmos, whisper_asr, silero_vad
 warnings.filterwarnings("ignore")
 audio_count = 0
 
+def generate_sample(dataset, split_stereo=False):
+    for sample in dataset:
+        if split_stereo is True:
+            if "mp3" in sample:
+                try:
+                    audio = AudioSegment.from_file(io.BytesIO(sample["mp3"]), format="mp3")
+                except:
+                    audio = AudioSegment.from_file(io.BytesIO(sample["mp3"]), format="mp4")
+            elif "wav" in sample:
+                audio = AudioSegment.from_file(io.BytesIO(sample["wav"]), format="wav")
+            else:
+                raise Exception("no audio data")
+
+            if audio.channels == 1:
+                yield sample
+            else:
+                for c_idx, mono_audio in enumerate(audio.split_to_mono()):
+                    uttid = f"{sample['__key__']}_{c_idx}"
+                    with io.BytesIO() as f:
+                        mono_audio.export(f, format="wav")
+                        wav = f.getvalue()
+                    result = {
+                        "__key__": uttid,
+                        "wav": wav
+                    }
+                    yield result
+
+        else:
+            yield sample
+
+
+
 def gcp_cp(fname, gcs_url="gs://ai-lab-speech-bucket/longtou/tmp"):
     dirname = str(Path(fname).parent)
     subprocess.run(f"gcloud storage cp -R {dirname} {gcs_url}", shell=True)
@@ -607,6 +639,11 @@ if __name__ == "__main__":
         default=0,
         help="webdataset start shard index",
     )
+    parser.add_argument(
+        "--split_stereo",
+        action="store_true",
+        help="whether to split stereo audio",
+    )
     args = parser.parse_args()
 
     batch_size = args.batch_size
@@ -702,7 +739,7 @@ if __name__ == "__main__":
                              post=partial(gcp_cp, gcs_url=args.gcs_url),
                              )
     f_log = open(args.f_log, "w")
-    for sample in dataset:
+    for sample in generate_sample(dataset, split_stereo=args.split_stereo):
         try:
             main_process_wds(sample, writer=writer)
         except Exception as e:
