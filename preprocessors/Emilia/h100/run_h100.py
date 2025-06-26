@@ -14,23 +14,23 @@ from kfp import kubernetes
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 
-IMAGE_URL = "us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:v3.5"
+IMAGE_URL = "us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:v4.0"
 N_GPU = 1
 N_CPU = "12"
 MEM_SIZE = "100Gi"
 MOUNT_PATH = "/home/longtou.2024/mount"
 CONFIG_PATH = f"{MOUNT_PATH}/longtou/saved/Emilia/config.json"
-WDS_PATH = "emilia_pipe"
-RECIPE_NAME = "ke_youtube3"
+WDS_PATH = "emilia_pipe_v2"
+RECIPE_NAME = "mediazen_adult"
 INPUT_FOLDER_PATH = "gs://prod-ai-lab-speech-bucket/longtou/db/" + RECIPE_NAME + "/wds_v2/shard-000{000..100}.tar"
-INPUT_FOLDER_PATH2 = "gs://prod-ai-lab-speech-bucket/longtou/db/" + RECIPE_NAME + "/wds_v2/shard-000{101..213}.tar"
+INPUT_FOLDER_PATH2 = "gs://prod-ai-lab-speech-bucket/longtou/db/" + RECIPE_NAME + "/wds_v2/shard-000{101..208}.tar"
 GCS_URL = "gs://prod-ai-lab-speech-bucket/longtou/db/" + RECIPE_NAME + "/"
-F_LOG = MOUNT_PATH + "/longtou/db/" + RECIPE_NAME +"/emilia_pipe0.log"
-F_LOG2 = MOUNT_PATH + "/longtou/db/" + RECIPE_NAME +"/emilia_pipe1.log"
+F_LOG = MOUNT_PATH + "/longtou/db/" + RECIPE_NAME +"/emilia_pipe_v2_0.log"
+F_LOG2 = MOUNT_PATH + "/longtou/db/" + RECIPE_NAME +"/emilia_pipe_v2_1.log"
 SHELL_COMMAND = f''' \
 export CUDA_VISIBLE_DEVICES="0" \
 && . ./activate_python.sh \
-&& python main_wds.py --config_path {CONFIG_PATH} --input_folder_path {INPUT_FOLDER_PATH} --wds_path {WDS_PATH} --gcs_url {GCS_URL} --f_log {F_LOG} --max_gpu_mem_frac 0.5 --start_shard 0 > /dev/null 2>&1 & sleep 10 && export CUDA_VISIBLE_DEVICES="0" && . ./activate_python.sh && python main_wds.py --config_path {CONFIG_PATH} --input_folder_path {INPUT_FOLDER_PATH2} --wds_path {WDS_PATH} --gcs_url {GCS_URL} --f_log {F_LOG2} --max_gpu_mem_frac 0.5 --start_shard 100
+&& python main_wds.py --config_path {CONFIG_PATH} --input_folder_path {INPUT_FOLDER_PATH} --wds_path {WDS_PATH} --gcs_url {GCS_URL} --f_log {F_LOG} --max_gpu_mem_frac 0.5 --start_shard 0 --split_stereo > /dev/null 2>&1 & sleep 10 && export CUDA_VISIBLE_DEVICES="0" && . ./activate_python.sh && python main_wds.py --config_path {CONFIG_PATH} --input_folder_path {INPUT_FOLDER_PATH2} --wds_path {WDS_PATH} --gcs_url {GCS_URL} --f_log {F_LOG2} --max_gpu_mem_frac 0.5 --start_shard 100 --split_stereo
 '''
 
 def add_pod_annotation(

@@ -17,13 +17,21 @@ deploymentSpec:
         command:
         - sh
         - -c
-        - ' export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" && . ./activate_python.sh
-          && python main_wds.py --config_path /home/longtou.2024/mount/longtou/saved/Emilia/config.json
-          --input_folder_path gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/wds_v2/shard-000{000..113}.tar
-          --wds_path emilia_pipe --gcs_url gs://prod-ai-lab-speech-bucket/longtou/db/saltlux_gyeongsang/emilia_pipe
+        - ' export CUDA_VISIBLE_DEVICES="0" && . ./activate_python.sh && python main_wds.py
+          --config_path /home/longtou.2024/mount/longtou/saved/Emilia/config.json
+          --input_folder_path gs://prod-ai-lab-speech-bucket/longtou/db/mediazen_adult/wds_v2/shard-000{000..100}.tar
+          --wds_path emilia_pipe_v2 --gcs_url gs://prod-ai-lab-speech-bucket/longtou/db/mediazen_adult/
+          --f_log /home/longtou.2024/mount/longtou/db/mediazen_adult/emilia_pipe_v2_0.log
+          --max_gpu_mem_frac 0.5 --start_shard 0 --split_stereo > /dev/null 2>&1 &
+          sleep 10 && export CUDA_VISIBLE_DEVICES="0" && . ./activate_python.sh &&
+          python main_wds.py --config_path /home/longtou.2024/mount/longtou/saved/Emilia/config.json
+          --input_folder_path gs://prod-ai-lab-speech-bucket/longtou/db/mediazen_adult/wds_v2/shard-000{101..208}.tar
+          --wds_path emilia_pipe_v2 --gcs_url gs://prod-ai-lab-speech-bucket/longtou/db/mediazen_adult/
+          --f_log /home/longtou.2024/mount/longtou/db/mediazen_adult/emilia_pipe_v2_1.log
+          --max_gpu_mem_frac 0.5 --start_shard 100 --split_stereo
 
           '
-        image: us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:v1
+        image: us-central1-docker.pkg.dev/prod-ai-project/tts/amphion:v4.0
         resources:
           accelerator:
             count: '1'
