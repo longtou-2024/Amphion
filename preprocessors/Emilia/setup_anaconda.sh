@@ -10,6 +10,8 @@ unames="$(uname -s)"
 unamem="$(uname -m)"
 is_windows=false
 
+export CONDA_PLUGINS_AUTO_ACCEPT_TOS=yes
+
 if [[ ${unames} =~ Linux ]]; then
     script="Miniconda3-latest-Linux-${unamem}.sh"
 elif [[ ${unames} =~ Darwin ]]; then
