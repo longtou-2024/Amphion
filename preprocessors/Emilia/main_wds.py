@@ -744,3 +744,7 @@ if __name__ == "__main__":
             main_process_wds(sample, writer=writer)
         except Exception as e:
             f_log.write(f"{sample['__key__']}: {e}\n")
+    if writer:
+        writer.close()
+    if f_log:
+        f_log.close()
